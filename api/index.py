@@ -49,3 +49,42 @@ def scrap():
         return content;
     else:
         return []
+    
+@app.route("/api/series/<series_name>")
+def series(series_name):
+    link = 'https://shinigami.id/series/{}/'
+    page = requests.get(link.format(series_name));
+
+    if page.status_code == 200:
+        genre_arr = []
+        chapter_arr = []
+        page_content = BeautifulSoup(page.content, 'html.parser')
+        image_link = page_content.find(class_='summary_image').find('img').get('data-src');
+        title = page_content.find(class_='post-title').find('h1').text.replace('\n','')
+        synopsis = page_content.find(class_='summary__content').find('p').text
+        genres = page_content.find(class_='genres-content').find_all('a')
+        for genre in genres:
+            genre_arr.append(genre.text)
+
+        chapters = page_content.find_all('li',class_='wp-manga-chapter')
+        for chapter in chapters:
+            chapter_title = chapter.find(class_='chapter-manhwa-title').text
+            chapter_release_date = chapter.find(class_='chapter-release-date').text.replace('\n','')
+            chapter_arr.append({
+                "title": chapter_title,
+                "release_date": chapter_release_date
+            })
+
+        response = {
+            "title": title,
+            "image_link": image_link,
+            "synopsis": synopsis,
+            "genres": genre_arr,
+            "chapters": chapter_arr
+        }
+        return response;
+    else:
+        return []
+
+if __name__ == "__main__":
+    app.run(debug=True)
