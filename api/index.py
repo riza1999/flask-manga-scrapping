@@ -12,7 +12,7 @@ def home():
 def about():
     return 'About'
 
-@app.route("/all")
+@app.route("/api/latest")
 def scrap():
     page = request.args.get('page', default=1);
     link = 'https://shinigami.id/semua-series/page/{}/?m_orderby=latest'.format(page);
