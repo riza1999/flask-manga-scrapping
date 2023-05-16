@@ -60,7 +60,7 @@ def series(series_name):
         chapter_arr = []
         page_content = BeautifulSoup(page.content, 'html.parser')
         image_link = page_content.find(class_='summary_image').find('img').get('data-src');
-        title = page_content.find(class_='post-title').find('h1').text.replace('\n','')
+        title = page_content.find(class_='post-title').find('h1').text.replace('\n','').lstrip().rstrip()
         synopsis = page_content.find(class_='summary__content').find('p').text
         genres = page_content.find(class_='genres-content').find_all('a')
         for genre in genres:
@@ -82,6 +82,37 @@ def series(series_name):
             "genres": genre_arr,
             "chapters": chapter_arr
         }
+        return response;
+    else:
+        return []
+
+@app.route("/api/series/<series_name>/<chapter>")
+def chapter(series_name,chapter):
+    link = 'https://shinigami.id/series/{}/{}/'
+    page = requests.get(link.format(series_name,chapter))
+    if page.status_code == 200:
+        img_arr = [];
+        chapter_arr = [];
+        page_content = BeautifulSoup(page.content, 'html.parser')
+        reading_content = page_content.find(class_='reading-content').find_all('img');
+        for x in reading_content:
+            link = x.get('data-src').replace('\t','').replace('\n','');
+            img_arr.append(link);
+
+        chapters = page_content.find(class_='single-chapter-select').find_all('option')
+        for chapter in chapters:
+            title = chapter.text.replace('\n','').lstrip().rstrip();
+            isSelected = chapter.get('selected') is not None;
+            chapter_arr.append({'title': title,'isSelected':isSelected});
+        
+        title = page_content.find(class_='breadcrumb').find_all('li')[2].text.replace('\n','').lstrip().rstrip()
+
+        response = {
+            'chapters': chapter_arr,
+            'image_content': img_arr,
+            'title': title
+        }
+
         return response;
     else:
         return []
