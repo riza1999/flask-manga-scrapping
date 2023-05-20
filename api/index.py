@@ -32,9 +32,9 @@ def scrap():
             latest_chapter = []
             temp = i.find_all(class_='chapter-item')
             for x in temp:
-                chapter_title = x.find('a', class_='btn-link').text.lstrip()
+                chapter_title = x.find('a', class_='btn-link').text.lstrip().rstrip()
                 chapter_post_on = x.find('span', class_='post-on').text.replace('\n','')
-                latest_chapter.append({"chapter_title":chapter_title, "chapter_post_on":chapter_post_on})
+                latest_chapter.append({"title":chapter_title, "post_on":chapter_post_on})
 
             response = {
                 "title": title,
@@ -114,6 +114,63 @@ def chapter(series_name,chapter):
         }
 
         return response;
+    else:
+        return []
+
+@app.route("/api/search")
+def search():
+    currPage = request.args.get('page', default=1);
+    tSearch = request.args.get('tSearch', default='');
+    link = 'https://shinigami.id/page/{}/?s={}&post_type=wp-manga'.format(currPage,tSearch)
+    page = requests.get(link)
+
+    if page.status_code == 200:
+        searchs = [];
+        page_content = BeautifulSoup(page.content, 'html.parser')
+        search_content = page_content.find(class_='tab-content-wrap').find_all(class_='row c-tabs-item__content') if page_content.find(class_='tab-content-wrap') is not None else None;
+
+        if search_content is not None:
+            total_search = page_content.find(class_='c-blog__heading style-2 font-heading').find('h1').text.replace('\n','').strip()
+            current_page = page_content.find(class_='current').text if page_content.find(class_='current') is not None else '1'
+            prev_page = page_content.find(class_='previouspostslink') is not None
+            next_page = page_content.find(class_='nextpostslink') is not None
+
+            for x in search_content:
+                img = x.find('img').get('data-src');
+                title = x.find(class_='post-title').text.lstrip().rstrip();
+                genres =  x.find(class_='post-content_item mg_genres').find(class_='summary-content').find_all('a')
+                genres_arr = [genre.text for genre in genres]
+                latest_chapter = x.find(class_='font-meta chapter').text.lstrip().rstrip();
+                latest_chapter_link = x.find(class_='font-meta chapter').find('a').get('href');
+                latest_chapter_post_on = x.find(class_='meta-item post-on').text.lstrip().rstrip();
+
+                searchs.append({
+                    "thumbnail": img,
+                    "title": title,
+                    "genres": genres_arr,
+                    "latest_chapter": [{
+                        "title": latest_chapter,
+                        "link": latest_chapter_link,
+                        "post_on": latest_chapter_post_on
+                    }]
+                })
+
+            response = {
+                'total_search': total_search,
+                'current_page': current_page,
+                'prev_page': prev_page,
+                'next_page': next_page,
+                'searchs': searchs
+            }
+        else:
+            response = {
+                'total_search': 0,
+                'current_page': 1,
+                'prev_page': False,
+                'next_page': False,
+                'searchs': []
+            }
+        return response
     else:
         return []
 
